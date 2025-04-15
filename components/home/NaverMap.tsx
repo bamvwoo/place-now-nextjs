@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 export default function NaverMap() {
-    const mapRef = useRef<HTMLDivElement | null>(null);
+    const mapRef = useRef<string | HTMLElement>(null);
 
     const [ location, setLocation ] = useState({ latitude: 0, longitude: 0 });
 
