@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 export default function NaverMap() {
-    const mapRef = useRef<string | HTMLElement>(null);
+    const mapRef = useRef<HTMLDivElement | null>(null);
 
     const [ location, setLocation ] = useState({ latitude: 0, longitude: 0 });
 
@@ -18,7 +18,7 @@ export default function NaverMap() {
                     disableKineticPan: false
                 };
 
-                const map = new window.naver.maps.Map(mapRef.current, mapOptions);
+                const map = new window.naver.maps.Map(mapRef.current as HTMLElement, mapOptions);
             });
 
             navigator.geolocation.watchPosition((position) => {
