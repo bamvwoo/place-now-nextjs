@@ -1,18 +1,39 @@
-import { useEffect, useRef, useState } from "react";
+import useLocation, { Location } from "@/hooks/useLocation";
+import { IPlace } from "@/models/Place";
+import { useEffect, useRef } from "react";
 import styled from "styled-components";
 
-export default function NaverMap() {
+type Props = {
+    nearbyPlaces: IPlace[];
+    setNearbyPlaces: React.Dispatch<React.SetStateAction<IPlace[]>>;
+};
+
+export default function NaverMap({ nearbyPlaces, setNearbyPlaces }: Props) {
     const mapRef = useRef<naver.maps.Map | null>(null);
     const markerRef = useRef<naver.maps.Marker | null>(null);
 
-    const [ location, setLocation ] = useState({ latitude: 0, longitude: 0 });
+    const { updateLocation } = useLocation();
+
+    const fetchNearbyPlaces = async (location: Location) => {
+        const response = await fetch(`/api/places/nearby?lat=${location.latitude}&lng=${location.longitude}`);
+        const data = await response.json();
+
+        setNearbyPlaces(data);
+    };
 
     useEffect(() => {
         if (!naver) return;
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition((position) => {
-                setLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+                const newLocation: Location = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                };
+
+                updateLocation(newLocation);
+
+                fetchNearbyPlaces(newLocation);
 
                 // 맵 초기화
                 if (!mapRef.current) {
@@ -40,21 +61,28 @@ export default function NaverMap() {
             });
 
             navigator.geolocation.watchPosition((position) => {
-                setLocation({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+                const newLocation: Location = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                };
+
+                updateLocation(newLocation);
+
+                fetchNearbyPlaces(newLocation);
 
                 if (mapRef.current) {
-                    mapRef.current.setCenter(new naver.maps.LatLng(position.coords.latitude, position.coords.longitude));
+                    mapRef.current.setCenter(new naver.maps.LatLng(newLocation.latitude, newLocation.longitude));
                 }
 
                 if (markerRef.current) {
-                    markerRef.current.setPosition(new naver.maps.LatLng(position.coords.latitude, position.coords.longitude));
+                    markerRef.current.setPosition(new naver.maps.LatLng(newLocation.latitude, newLocation.longitude));
                 }
             });
         }
     }, []);
 
     return (
-      <Wrapper id="mainMap" />
+        <Wrapper id="mainMap" />
     );
 }
 
