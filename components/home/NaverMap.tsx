@@ -1,88 +1,76 @@
-import useLocation, { Location } from "@/hooks/useLocation";
+import { Location, useLocation } from "@/contexts/LocationContext";
 import { IPlace } from "@/models/Place";
 import { useEffect, useRef } from "react";
 import styled from "styled-components";
 
 type Props = {
+    mapRef: React.RefObject<naver.maps.Map | null>;
     nearbyPlaces: IPlace[];
     setNearbyPlaces: React.Dispatch<React.SetStateAction<IPlace[]>>;
 };
 
-export default function NaverMap({ nearbyPlaces, setNearbyPlaces }: Props) {
-    const mapRef = useRef<naver.maps.Map | null>(null);
-    const markerRef = useRef<naver.maps.Marker | null>(null);
+export default function NaverMap({ mapRef, nearbyPlaces, setNearbyPlaces }: Props) {
 
-    const { updateLocation } = useLocation();
+    const locationMarkerRef = useRef<naver.maps.Marker | null>(null);
 
-    const fetchNearbyPlaces = async (location: Location) => {
-        const response = await fetch(`/api/places/nearby?lat=${location.latitude}&lng=${location.longitude}`);
-        const data = await response.json();
-
-        setNearbyPlaces(data);
-    };
+    const { location, subscribe } = useLocation();
 
     useEffect(() => {
         if (!naver) return;
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const newLocation: Location = {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                };
-
-                updateLocation(newLocation);
-
-                fetchNearbyPlaces(newLocation);
-
-                // 맵 초기화
-                if (!mapRef.current) {
-                    mapRef.current = new naver.maps.Map("mainMap", {
-                        center: new naver.maps.LatLng(position.coords.latitude, position.coords.longitude),
-                        zoom: 17,
-                        disableKineticPan: false
-                    });
-                }
-
-                // 마커 초기화
-                if (mapRef.current && !markerRef.current) {
-                    markerRef.current = new naver.maps.Marker({
-                        position: new naver.maps.LatLng(position.coords.latitude, position.coords.longitude),
-                        map: mapRef.current
-                        /*
-                        icon: {
-                            content: `<img src="${markerImage}" width="300" height="300" />`,
-                            size: new naver.maps.Size(300, 300),
-                            anchor: new naver.maps.Point(150, 150)
-                        }
-                        */
-                    });
-                }
+        if (!mapRef.current) {
+            mapRef.current = new naver.maps.Map("mainMap", {
+                center: new naver.maps.LatLng(location.lat, location.lng),
+                zoom: 17,
+                disableKineticPan: false
             });
+        }
 
-            navigator.geolocation.watchPosition((position) => {
-                const newLocation: Location = {
-                    latitude: position.coords.latitude,
-                    longitude: position.coords.longitude
-                };
+        if (mapRef.current && !locationMarkerRef.current) {
+            locationMarkerRef.current = new naver.maps.Marker({
+                position: new naver.maps.LatLng(location.lat, location.lng),
+                map: mapRef.current
+                /*
+                icon: {
+                    content: `<img src="${markerImage}" width="300" height="300" />`,
+                    size: new naver.maps.Size(300, 300),
+                    anchor: new naver.maps.Point(150, 150)
+                }
+                */
+            });
+        }
 
-                updateLocation(newLocation);
-
-                fetchNearbyPlaces(newLocation);
-
+        const unsubscribe = subscribe({
+            onChange: (location: Location) => {
                 if (mapRef.current) {
-                    mapRef.current.setCenter(new naver.maps.LatLng(newLocation.latitude, newLocation.longitude));
+                    mapRef.current.setCenter(new naver.maps.LatLng(location.lat, location.lng));
                 }
 
-                if (markerRef.current) {
-                    markerRef.current.setPosition(new naver.maps.LatLng(newLocation.latitude, newLocation.longitude));
+                if (mapRef.current && locationMarkerRef.current) {
+                    locationMarkerRef.current.setPosition(new naver.maps.LatLng(location.lat, location.lng));
                 }
-            });
+            }
+        });
+
+        return () => {
+            if (mapRef.current) {
+                mapRef.current.destroy();
+                mapRef.current = null;
+            }
+
+            if (locationMarkerRef.current) {
+                locationMarkerRef.current.setMap(null);
+                locationMarkerRef.current = null;
+            }
+
+            unsubscribe();
         }
     }, []);
 
     return (
-        <Wrapper id="mainMap" />
+        <>
+            <Wrapper id="mainMap" />
+        </>
     );
 }
 
