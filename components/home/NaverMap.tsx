@@ -1,17 +1,16 @@
 import { Location, useLocation } from "@/contexts/LocationContext";
 import { IPlace } from "@/models/Place";
 import { useEffect, useRef } from "react";
+import { renderToString } from 'react-dom/server';
 import styled from "styled-components";
+import LocationMarker from "./LocationMarker";
+import PlaceMarker from "./PlaceMarker";
 
-type Props = {
-    mapRef: React.RefObject<naver.maps.Map | null>;
-    nearbyPlaces: IPlace[];
-    setNearbyPlaces: React.Dispatch<React.SetStateAction<IPlace[]>>;
-};
+export default function NaverMap() {
 
-export default function NaverMap({ mapRef, nearbyPlaces, setNearbyPlaces }: Props) {
-
+    const mapRef = useRef<naver.maps.Map | null>(null);
     const locationMarkerRef = useRef<naver.maps.Marker | null>(null);
+    const nearbyRangeRef = useRef<naver.maps.Circle | null>(null);
 
     const { location, subscribe } = useLocation();
 
@@ -19,6 +18,7 @@ export default function NaverMap({ mapRef, nearbyPlaces, setNearbyPlaces }: Prop
         if (!naver) return;
 
         if (!mapRef.current) {
+            // #. 네이버 맵 생성
             mapRef.current = new naver.maps.Map("mainMap", {
                 center: new naver.maps.LatLng(location.lat, location.lng),
                 zoom: 17,
@@ -27,27 +27,64 @@ export default function NaverMap({ mapRef, nearbyPlaces, setNearbyPlaces }: Prop
         }
 
         if (mapRef.current && !locationMarkerRef.current) {
+            // #. 현재 위치 마커 생성
+            const locationMarkerContent = renderToString(<LocationMarker />);
             locationMarkerRef.current = new naver.maps.Marker({
                 position: new naver.maps.LatLng(location.lat, location.lng),
-                map: mapRef.current
-                /*
+                map: mapRef.current,
                 icon: {
-                    content: `<img src="${markerImage}" width="300" height="300" />`,
-                    size: new naver.maps.Size(300, 300),
-                    anchor: new naver.maps.Point(150, 150)
+                    content: locationMarkerContent,
+                    size: new naver.maps.Size(50, 50),
+                    anchor: new naver.maps.Point(15, 15)
                 }
-                */
+            });
+
+            // #. 현재 위치 기준 반경 300m 원 생성
+            nearbyRangeRef.current = new naver.maps.Circle({
+                map: mapRef.current,
+                center: new naver.maps.LatLng(location.lat, location.lng),
+                radius: 300,
+                strokeColor: "#3399ff",
+                strokeOpacity: 0.8,
+                strokeWeight: 2,
+                fillColor: "#cce6ff",
+                fillOpacity: 0.3
             });
         }
 
         const unsubscribe = subscribe({
-            onChange: (location: Location) => {
+            onChange: (newLocation: Location, nearbyPlaces: IPlace[]) => {
                 if (mapRef.current) {
-                    mapRef.current.setCenter(new naver.maps.LatLng(location.lat, location.lng));
-                }
+                    if (!location.lat && !location.lng) {
+                        mapRef.current.setCenter(new naver.maps.LatLng(newLocation.lat, newLocation.lng));
+                    }
 
-                if (mapRef.current && locationMarkerRef.current) {
-                    locationMarkerRef.current.setPosition(new naver.maps.LatLng(location.lat, location.lng));
+                    // #. 현재 위치 마커 위치 변경
+                    if (locationMarkerRef.current) {
+                        locationMarkerRef.current.setPosition(new naver.maps.LatLng(newLocation.lat, newLocation.lng));
+                    }
+
+                    // #. 현재 위치 기준 반경 300m 원 중심 위치 변경
+                    if (nearbyRangeRef.current) {
+                        nearbyRangeRef.current.setCenter(new naver.maps.LatLng(newLocation.lat, newLocation.lng));
+                    }
+
+                    for (const nearbyPlace of nearbyPlaces) {
+                        const lat = nearbyPlace.location.coordinates[1];
+                        const lng = nearbyPlace.location.coordinates[0];
+
+                        const nearbyPlaceMarker = new naver.maps.Marker({
+                            position: new naver.maps.LatLng(lat, lng),
+                            map: mapRef.current,
+                            icon: {
+                                content: renderToString(<PlaceMarker place={nearbyPlace} />)
+                            }
+                        });
+
+                        naver.maps.Event.addListener(nearbyPlaceMarker, 'click', (e) => {
+                            console.log(nearbyPlace);
+                        });
+                    }
                 }
             }
         });

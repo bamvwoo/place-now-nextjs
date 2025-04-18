@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 }
 
 async function handleGet(req: NextApiRequest, res: NextApiResponse) {
-    const { lat, lng, radius = 500 } = req.query;
+    const { lat, lng, radius = 300 } = req.query;
     if (!lat || !lng) {
         return res.status(400).json({ error: 'lat/lng is required' });
     }
