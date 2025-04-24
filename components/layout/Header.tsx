@@ -3,20 +3,25 @@ import styled from "styled-components";
 import Logo from "../common/Logo";
 
 export default function Header() {
-    const [ isFocused, setIsFocused ] = useState(false);
+    const [isFocused, setIsFocused] = useState(false);
 
     const handleFocus = () => setIsFocused(true);
     const handleBlur = () => setIsFocused(false);
 
     return (
-      <Wrapper isFocused={ isFocused } >
-        <Logo />
-        <input type="text" onFocus={handleFocus} onBlur={handleBlur}></input>
-      </Wrapper>
+        <Wrapper>
+            <CenterContainer $isFocused={isFocused}>
+                <Logo />
+                <input type="text" onFocus={handleFocus} onBlur={handleBlur}></input>
+            </CenterContainer>
+            <RightContainer>
+
+            </RightContainer>
+        </Wrapper>
     );
 };
 
-const Wrapper = styled.header<{ isFocused: boolean }>`
+const Wrapper = styled.header`
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -35,4 +40,11 @@ const Wrapper = styled.header<{ isFocused: boolean }>`
     background-color: #fff;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
     border-radius: 4rem;
+`;
+
+const CenterContainer = styled.div<{ $isFocused: boolean }>`
+
+`;
+
+const RightContainer = styled.div`
 `;

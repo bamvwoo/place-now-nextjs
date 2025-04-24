@@ -5,6 +5,7 @@ import { renderToString } from 'react-dom/server';
 import styled from "styled-components";
 import LocationMarker from "./LocationMarker";
 import PlaceMarker from "./PlaceMarker";
+import { createRoot } from "react-dom/client";
 
 export default function NaverMap() {
 
@@ -13,6 +14,15 @@ export default function NaverMap() {
     const nearbyRangeRef = useRef<naver.maps.Circle | null>(null);
 
     const { location, subscribe } = useLocation();
+
+    const getMarkerContent = (children: React.ReactNode) => {
+        const container = document.createElement('div');
+
+        const root = createRoot(container);
+        root.render(children);
+
+        return container;
+    };
 
     useEffect(() => {
         if (!naver) return;
@@ -26,16 +36,16 @@ export default function NaverMap() {
             });
         }
 
+
         if (mapRef.current && !locationMarkerRef.current) {
             // #. 현재 위치 마커 생성
-            const locationMarkerContent = renderToString(<LocationMarker />);
             locationMarkerRef.current = new naver.maps.Marker({
                 position: new naver.maps.LatLng(location.lat, location.lng),
                 map: mapRef.current,
                 icon: {
-                    content: locationMarkerContent,
-                    size: new naver.maps.Size(50, 50),
-                    anchor: new naver.maps.Point(15, 15)
+                    content: getMarkerContent(<LocationMarker />),
+                    size: new naver.maps.Size(200, 200),
+                    anchor: new naver.maps.Point(100, 100)
                 }
             });
 
@@ -77,7 +87,7 @@ export default function NaverMap() {
                             position: new naver.maps.LatLng(lat, lng),
                             map: mapRef.current,
                             icon: {
-                                content: renderToString(<PlaceMarker place={nearbyPlace} />)
+                                content: getMarkerContent(<PlaceMarker place={nearbyPlace} />)
                             }
                         });
 
