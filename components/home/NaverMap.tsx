@@ -1,7 +1,6 @@
 import { Location, useLocation } from "@/contexts/LocationContext";
 import { IPlace } from "@/models/Place";
 import { useEffect, useRef } from "react";
-import { renderToString } from 'react-dom/server';
 import styled from "styled-components";
 import LocationMarker from "./LocationMarker";
 import PlaceMarker from "./PlaceMarker";
@@ -12,6 +11,7 @@ export default function NaverMap() {
     const mapRef = useRef<naver.maps.Map | null>(null);
     const locationMarkerRef = useRef<naver.maps.Marker | null>(null);
     const nearbyRangeRef = useRef<naver.maps.Circle | null>(null);
+    const nearbyPlaceMarkersRef = useRef<naver.maps.Marker[]>([]);
 
     const { location, subscribe } = useLocation();
 
@@ -79,6 +79,14 @@ export default function NaverMap() {
                         nearbyRangeRef.current.setCenter(new naver.maps.LatLng(newLocation.lat, newLocation.lng));
                     }
 
+                    // #. 주변 장소 마커 삭제
+                    if (nearbyPlaceMarkersRef.current) {
+                        for (const marker of nearbyPlaceMarkersRef.current) {
+                            marker.setMap(null);
+                        }
+                        nearbyPlaceMarkersRef.current = [];
+                    }
+
                     for (const nearbyPlace of nearbyPlaces) {
                         const lat = nearbyPlace.location.coordinates[1];
                         const lng = nearbyPlace.location.coordinates[0];
@@ -94,6 +102,8 @@ export default function NaverMap() {
                         naver.maps.Event.addListener(nearbyPlaceMarker, 'click', (e) => {
                             console.log(nearbyPlace);
                         });
+
+                        nearbyPlaceMarkersRef.current.push(nearbyPlaceMarker);
                     }
                 }
             }

@@ -1,6 +1,6 @@
 import NaverMap from "@/components/home/NaverMap";
 import { useLocation } from "@/contexts/LocationContext";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 
 export default function Home() {
 
